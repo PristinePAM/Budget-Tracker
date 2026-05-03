@@ -207,6 +207,7 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
 .paid-input-mobile:focus{outline:none;border-color:var(--border-strong);}
 .entry-card-note{font-size:11px;color:var(--text-faint);font-style:italic;margin-top:3px;}
 .mobile-footer{display:none;padding:.75rem 1rem;border-top:1px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;}
+.mobile-footer.visible{display:none;}/* shown only via media query below */
 .mobile-footer-row{display:flex;justify-content:space-between;}
 
 /* PILLS & TAGS */
@@ -306,7 +307,7 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
 @media(max-width:640px){
   .app-header{padding:0 1rem;}.page{padding:1rem .75rem 4rem;}.nav-tab{padding:10px 12px;font-size:11px;}
   .year-summary{grid-template-columns:1fr 1fr;}.highlights{grid-template-columns:1fr;}.section-head{flex-direction:column;align-items:flex-start;}.form-grid{grid-template-columns:1fr 1fr!important;}.calc-body{flex-direction:column;gap:10px;}.calc-vdiv{display:none;}
-  .tbl-wrap{display:none;}.entry-list{display:block;}.mobile-footer{display:block;}
+  .tbl-wrap{display:none;}.entry-list{display:block;}.mobile-footer.visible{display:block;}
 }
 @media(max-width:400px){.header-right .btn-sm{display:none;}.mnav-label{min-width:120px;font-size:14px;}}
 </style>
@@ -467,7 +468,7 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
       </table>
     </div>
     <div class="entry-list" id="fixedCardList"></div>
-    <div class="mobile-footer" id="fixedMobileFooter" style="display:none;">
+    <div class="mobile-footer" id="fixedMobileFooter">
       <div class="mobile-footer-row"><span>Total due</span><span class="mono" id="mftDue">₱0.00</span></div>
       <div class="mobile-footer-row"><span>Total paid</span><span class="mono" id="mftPaid">₱0.00</span></div>
       <div class="mobile-footer-row"><span>Balance</span><span class="mono" id="mftBal">₱0.00</span></div>
@@ -503,8 +504,8 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th style="width:80px;">Date</th><th>Description</th><th style="width:125px;">Category</th>
-          <th style="width:155px;">Notes</th><th style="width:100px;" class="text-right">Amount</th>
+          <th style="width:80px;">Date</th><th>Description</th><th style="width:155px;">Notes</th><th style="width:125px;">Category</th>
+          <th style="width:100px;" class="text-right">Amount</th>
           <th style="width:52px;"></th>
         </tr></thead>
         <tbody id="dailyTable"></tbody>
@@ -512,7 +513,7 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
       </table>
     </div>
     <div class="entry-list" id="dailyCardList"></div>
-    <div class="mobile-footer" id="dailyMobileFooter" style="display:none;">
+    <div class="mobile-footer" id="dailyMobileFooter">
       <div class="mobile-footer-row"><span>Total daily spending</span><span class="mono" id="mdtTotal">₱0.00</span></div>
     </div>
   </div>
@@ -947,11 +948,11 @@ function renderFixed(){
   }
   // Mobile cards
   const cardList=document.getElementById('fixedCardList'),footer=document.getElementById('fixedMobileFooter');
-  if(!pt.length){cardList.innerHTML='<div style="text-align:center;color:var(--text-faint);padding:2rem;font-size:13px;">No fixed expenses this month.</div>';footer.style.display='none';}
+  if(!pt.length){cardList.innerHTML='<div style="text-align:center;color:var(--text-faint);padding:2rem;font-size:13px;">No fixed expenses this month.</div>';footer.classList.remove('visible');}
   else{
     let tD=0,tP=0;
     cardList.innerHTML=pt.map(e=>{tD+=e.amt;tP+=(e.paid||0);const rem=+(e.amt-(e.paid||0)).toFixed(2),isOD=e.date&&e.date<td&&rem>0;const status=e.paid>=e.amt?'full':e.paid>0?'partial':'unpaid';const sLabel=isOD&&status!=='full'?'Overdue':status==='full'?'Fully paid':status==='partial'?'Partial':'Unpaid';return'<div class="entry-card '+(e.carryover?'carryover ':'')+(isOD&&status!=='full'?'overdue-row':'')+'"><div class="entry-card-top"><span class="entry-card-desc">'+e.desc+(e.carryover?'&nbsp;<span class="carryover-note">↩</span>':'')+'</span><span class="entry-card-amt" style="color:var(--red-text);">'+fmt(e.amt)+'</span></div><div class="entry-card-meta"><span class="entry-card-date">'+fmtD(e.date)+'</span>'+ctag(e.cat)+'<span class="pill pill-'+(isOD&&status!=='full'?'overdue':status)+'">'+sLabel+'</span>'+(isOD?'<span class="overdue-flag">⚠</span>':'')+'</div><div class="entry-card-actions"><span style="font-size:12px;color:var(--text-muted);">Paid:</span><input class="paid-input-mobile" type="number" min="0" max="'+e.amt+'" step="0.01" value="'+(e.paid||'')+'" placeholder="0.00" onchange="updatePaid(\''+e.id+'\',this.value)"><span style="font-size:12px;color:'+(rem>0?'var(--red-text)':'var(--green-text)')+';">Bal: '+(rem>0?fmt(rem):'—')+'</span><button class="btn-icon edit" onclick="openEditFixed(\''+e.id+'\')" title="Edit">✎</button><button class="btn-icon del" onclick="deleteFixedExpense(\''+e.id+'\')" title="Delete">×</button></div>'+(e.note?'<div class="entry-card-note">'+e.note+'</div>':'')+'</div>';}).join('');
-    footer.style.display='block';document.getElementById('mftDue').textContent=fmt(tD);document.getElementById('mftPaid').textContent=fmt(tP);
+    footer.classList.add('visible');document.getElementById('mftDue').textContent=fmt(tD);document.getElementById('mftPaid').textContent=fmt(tP);
     const r=tD-tP;document.getElementById('mftBal').textContent=fmt(r);document.getElementById('mftBal').style.color=r>0?'var(--red-text)':'var(--green-text)';
   }
   // Fixed category breakdown
@@ -979,12 +980,12 @@ function renderDaily(){
     ['dtTotal','dsPeriodTotal'].forEach(id=>document.getElementById(id).textContent='₱0.00');
     document.getElementById('dsToday').textContent='₱0.00';document.getElementById('dsCount').textContent='0';
     cardList.innerHTML='<div style="text-align:center;color:var(--text-faint);padding:2rem;font-size:13px;">No daily entries yet.</div>';
-    footer.style.display='none';renderCatBreakdown([],'daily');return;
+    footer.classList.remove('visible');renderCatBreakdown([],'daily');return;
   }
   let total=0,todayTotal=0;
-  tbody.innerHTML=pt.map(d=>{total+=d.amt;if(d.date===td)todayTotal+=d.amt;return'<tr><td style="font-size:12px;color:var(--text-muted);">'+fmtD(d.date)+'</td><td>'+d.desc+'</td><td>'+ctag(d.cat)+'</td><td style="font-size:12px;color:var(--text-faint);">'+(d.note||'—')+'</td><td class="text-right"><span class="mono" style="color:var(--red-text);">'+fmt(d.amt)+'</span></td><td style="white-space:nowrap;"><button class="btn-icon edit" onclick="openEditDaily(\''+d.id+'\')" title="Edit">✎</button><button class="btn-icon del" onclick="deleteDailyExpense(\''+d.id+'\')" title="Delete">×</button></td></tr>';}).join('');
+  tbody.innerHTML=pt.map(d=>{total+=d.amt;if(d.date===td)todayTotal+=d.amt;return'<tr><td style="font-size:12px;color:var(--text-muted);">'+fmtD(d.date)+'</td><td>'+d.desc+'</td><td style="font-size:12px;color:var(--text-faint);">'+(d.note||'—')+'</td><td>'+ctag(d.cat)+'</td><td class="text-right"><span class="mono" style="color:var(--red-text);">'+fmt(d.amt)+'</span></td><td style="white-space:nowrap;"><button class="btn-icon edit" onclick="openEditDaily(\''+d.id+'\')" title="Edit">✎</button><button class="btn-icon del" onclick="deleteDailyExpense(\''+d.id+'\')" title="Delete">×</button></td></tr>';}).join('');
   cardList.innerHTML=pt.map(d=>'<div class="entry-card"><div class="entry-card-top"><span class="entry-card-desc">'+d.desc+'</span><span class="entry-card-amt" style="color:var(--red-text);">'+fmt(d.amt)+'</span></div><div class="entry-card-meta"><span class="entry-card-date">'+fmtD(d.date)+'</span>'+ctag(d.cat)+'</div>'+(d.note?'<div class="entry-card-note">'+d.note+'</div>':'')+'<div class="entry-card-actions" style="margin-top:6px;"><button class="btn-icon edit" onclick="openEditDaily(\''+d.id+'\')" title="Edit">✎</button><button class="btn-icon del" onclick="deleteDailyExpense(\''+d.id+'\')" title="Delete">×</button></div></div>').join('');
-  footer.style.display='block';document.getElementById('mdtTotal').textContent=fmt(total);
+  footer.classList.add('visible');document.getElementById('mdtTotal').textContent=fmt(total);
   document.getElementById('dtTotal').textContent=fmt(total);document.getElementById('dsPeriodTotal').textContent=fmt(total);document.getElementById('dsToday').textContent=fmt(todayTotal);document.getElementById('dsCount').textContent=pt.length;
   renderCatBreakdown(pt,'daily');
 }
