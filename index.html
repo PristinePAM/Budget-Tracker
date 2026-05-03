@@ -675,6 +675,7 @@ tfoot td{font-size:13px;font-weight:600;padding:9px 10px;border-top:2px solid va
       <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
     </select></div>
     <div class="fg" id="rrNField" style="display:none;"><label>Number of months</label><input type="number" id="rrN" placeholder="e.g. 6" min="1"></div>
+    <div class="fg" id="rrDueDayField" style="display:none;"><label>Due day of month (1–28)</label><input type="number" id="rrDueDay" placeholder="e.g. 15" min="1" max="28"></div>
     <div class="fg"><label>Start date</label><input type="date" id="rrStart"></div>
     <div class="fg"><label>End date (optional)</label><input type="date" id="rrEnd"></div>
   </div>
@@ -840,15 +841,15 @@ function openRecurringForm(id){
   document.getElementById('recurModalTitle').textContent=isEdit?'✎ Edit recurring':'🔁 New recurring expense';
   document.getElementById('recurSaveBtn').textContent=isEdit?'Save changes':'Add recurring';
   document.getElementById('recurSaveBtn').onclick=isEdit?saveEditRecurring:saveRecurring;
-  if(isEdit){const t=window._recurTemplates.find(x=>x.id===id);if(!t)return;document.getElementById('rrDesc').value=t.desc;document.getElementById('rrAmt').value=t.amt;document.getElementById('rrCat').value=t.cat;document.getElementById('rrNote').value=t.note||'';document.getElementById('rrType').value=t.type;document.getElementById('rrStart').value=t.startDate||'';document.getElementById('rrEnd').value=t.endDate||'';if(t.type==='dayOfWeek')document.getElementById('rrDow').value=t.dow;if(t.type==='nTimes')document.getElementById('rrN').value=t.total||'';}
-  else{document.getElementById('rrDesc').value='';document.getElementById('rrAmt').value='';document.getElementById('rrNote').value='';document.getElementById('rrType').value='everyMonth';document.getElementById('rrStart').value=today();document.getElementById('rrEnd').value='';document.getElementById('rrN').value='';}
+  if(isEdit){const t=window._recurTemplates.find(x=>x.id===id);if(!t)return;document.getElementById('rrDesc').value=t.desc;document.getElementById('rrAmt').value=t.amt;document.getElementById('rrCat').value=t.cat;document.getElementById('rrNote').value=t.note||'';document.getElementById('rrType').value=t.type;document.getElementById('rrStart').value=t.startDate||'';document.getElementById('rrEnd').value=t.endDate||'';document.getElementById('rrDueDay').value=t.dueDay||'';if(t.type==='dayOfWeek')document.getElementById('rrDow').value=t.dow;if(t.type==='nTimes')document.getElementById('rrN').value=t.total||'';}
+  else{document.getElementById('rrDesc').value='';document.getElementById('rrAmt').value='';document.getElementById('rrNote').value='';document.getElementById('rrType').value='everyMonth';document.getElementById('rrStart').value=today();document.getElementById('rrEnd').value='';document.getElementById('rrN').value='';document.getElementById('rrDueDay').value='';}
   updateRecurFields();openModal('modalRecur');
 }
-function updateRecurFields(){const t=document.getElementById('rrType').value;document.getElementById('rrDowField').style.display=t==='dayOfWeek'?'block':'none';document.getElementById('rrNField').style.display=t==='nTimes'?'block':'none';}
+function updateRecurFields(){const t=document.getElementById('rrType').value;document.getElementById('rrDowField').style.display=t==='dayOfWeek'?'block':'none';document.getElementById('rrNField').style.display=t==='nTimes'?'block':'none';document.getElementById('rrDueDayField').style.display=(t==='everyMonth'||t==='nTimes')?'block':'none';}
 function saveRecurring(){
-  const desc=document.getElementById('rrDesc').value.trim(),amt=parseFloat(document.getElementById('rrAmt').value),cat=document.getElementById('rrCat').value,type=document.getElementById('rrType').value,note=document.getElementById('rrNote').value.trim(),startDate=document.getElementById('rrStart').value||today(),endDate=document.getElementById('rrEnd').value||null;
+  const desc=document.getElementById('rrDesc').value.trim(),amt=parseFloat(document.getElementById('rrAmt').value),cat=document.getElementById('rrCat').value,type=document.getElementById('rrType').value,note=document.getElementById('rrNote').value.trim(),startDate=document.getElementById('rrStart').value||today(),endDate=document.getElementById('rrEnd').value||null,dueDay=parseInt(document.getElementById('rrDueDay').value)||null;
   if(!desc||isNaN(amt)||amt<=0){toast('Enter description and amount.');return;}
-  const t={id:uid(),desc,amt,cat,note,type,stopped:false,startDate,endDate};
+  const t={id:uid(),desc,amt,cat,note,type,stopped:false,startDate,endDate,dueDay};
   if(type==='dayOfWeek')t.dow=parseInt(document.getElementById('rrDow').value);
   if(type==='nTimes')t.total=parseInt(document.getElementById('rrN').value)||1;
   window._recurTemplates.push(t);save();closeModal('modalRecur');render();renderRecurringPage();toast('Recurring added.');
@@ -857,7 +858,7 @@ function saveEditRecurring(){
   const t=window._recurTemplates.find(x=>x.id===editingRecurId);if(!t)return;
   const desc=document.getElementById('rrDesc').value.trim(),amt=parseFloat(document.getElementById('rrAmt').value),type=document.getElementById('rrType').value;
   if(!desc||isNaN(amt)||amt<=0){toast('Enter description and amount.');return;}
-  t.desc=desc;t.amt=amt;t.cat=document.getElementById('rrCat').value;t.note=document.getElementById('rrNote').value.trim();t.type=type;t.startDate=document.getElementById('rrStart').value||today();t.endDate=document.getElementById('rrEnd').value||null;
+  t.desc=desc;t.amt=amt;t.cat=document.getElementById('rrCat').value;t.note=document.getElementById('rrNote').value.trim();t.type=type;t.startDate=document.getElementById('rrStart').value||today();t.endDate=document.getElementById('rrEnd').value||null;t.dueDay=parseInt(document.getElementById('rrDueDay').value)||null;
   if(type==='dayOfWeek')t.dow=parseInt(document.getElementById('rrDow').value);
   if(type==='nTimes')t.total=parseInt(document.getElementById('rrN').value)||1;
   save();closeModal('modalRecur');render();renderRecurringPage();toast('Recurring updated.');
@@ -875,7 +876,7 @@ function renderRecurringPage(){
   if(!window._recurTemplates.length){el.innerHTML='<div style="text-align:center;color:var(--text-faint);padding:2rem 0;font-size:13px;">No recurring expenses yet.</div>';return;}
   el.innerHTML=window._recurTemplates.map(t=>{
     const used=window._exp.filter(e=>e.recurId===t.id).length;
-    let meta=t.type==='everyMonth'?'Every month':t.type==='dayOfWeek'?'Every '+DAYS[t.dow]+' in month':used+' of '+t.total+' months used';
+    let meta=t.type==='everyMonth'?'Every month'+(t.dueDay?' (due '+t.dueDay+'th)':''):t.type==='dayOfWeek'?'Every '+DAYS[t.dow]+' in month':used+' of '+t.total+' months used'+(t.dueDay?' (due '+t.dueDay+'th)':'');
     if(t.startDate)meta+=' · From '+fmtD(t.startDate);if(t.endDate)meta+=' · Until '+fmtD(t.endDate);
     const complete=t.type==='nTimes'&&used>=t.total,canEdit=!t.stopped&&!complete;
     const badge=t.stopped?'<span class="stopped-badge">⏹ Stopped</span>':complete?'<span class="stopped-badge">✓ Complete</span>':'<span class="pill pill-full" style="font-size:10px;padding:1px 7px;">Active</span>';
@@ -885,7 +886,7 @@ function renderRecurringPage(){
 
 // AUTO POPULATE RECURRING
 function autoPopulateRecurring(){
-  if(!isCurrentOrFutureMonth(curMonth,curYear))return;
+  // No future-only guard — populate any month within the template's date range
   const existing=window._exp.filter(e=>e.month===curMonth&&e.year===curYear);
   const existingIds=new Set(existing.filter(e=>e.recurId).map(e=>e.recurId));
   const mStart=monthStart(curMonth,curYear),mEnd=monthEnd(curMonth,curYear);
@@ -893,9 +894,23 @@ function autoPopulateRecurring(){
   window._recurTemplates.forEach(t=>{
     if(t.stopped)return;if(existingIds.has(t.id))return;
     if(t.startDate&&mEnd<t.startDate)return;if(t.endDate&&mStart>t.endDate)return;
-    if(t.type==='nTimes'){const past=window._exp.filter(e=>e.recurId===t.id&&(e.year<curYear||(e.year===curYear&&e.month<curMonth))).length;if(past>=t.total)return;window._exp.push({id:uid(),date:mStart,desc:t.desc,amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'nTimes',recurTotal:t.total,recurCount:past+1});added++;}
-    else if(t.type==='everyMonth'){window._exp.push({id:uid(),date:mStart,desc:t.desc,amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'everyMonth'});added++;}
-    else if(t.type==='dayOfWeek'){const dim=new Date(curYear,curMonth+1,0).getDate();for(let d=1;d<=dim;d++){const dt=new Date(curYear,curMonth,d);if(dt.getDay()===t.dow){const ds=curYear+'-'+(String(curMonth+1).padStart(2,'0'))+'-'+(String(d).padStart(2,'0'));if(t.startDate&&ds<t.startDate)continue;if(t.endDate&&ds>t.endDate)continue;window._exp.push({id:uid(),date:ds,desc:t.desc+' ('+DAYS[t.dow]+')',amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'dayOfWeek',recurDow:t.dow});added++;}}}
+    // Build due date using dueDay if set, otherwise 1st of month; clamped to last day of month
+    function makeDueDate(m,y,day){
+      const d=Math.min(day||1,new Date(y,m+1,0).getDate());
+      return y+'-'+(String(m+1).padStart(2,'0'))+'-'+(String(d).padStart(2,'0'));
+    }
+    if(t.type==='nTimes'){
+      const past=window._exp.filter(e=>e.recurId===t.id&&(e.year<curYear||(e.year===curYear&&e.month<curMonth))).length;
+      if(past>=t.total)return;
+      const dateStr=makeDueDate(curMonth,curYear,t.dueDay);
+      window._exp.push({id:uid(),date:dateStr,desc:t.desc,amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'nTimes',recurTotal:t.total,recurCount:past+1});added++;
+    } else if(t.type==='everyMonth'){
+      const dateStr=makeDueDate(curMonth,curYear,t.dueDay);
+      window._exp.push({id:uid(),date:dateStr,desc:t.desc,amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'everyMonth'});added++;
+    } else if(t.type==='dayOfWeek'){
+      const dim=new Date(curYear,curMonth+1,0).getDate();
+      for(let d=1;d<=dim;d++){const dt=new Date(curYear,curMonth,d);if(dt.getDay()===t.dow){const ds=curYear+'-'+(String(curMonth+1).padStart(2,'0'))+'-'+(String(d).padStart(2,'0'));if(t.startDate&&ds<t.startDate)continue;if(t.endDate&&ds>t.endDate)continue;window._exp.push({id:uid(),date:ds,desc:t.desc+' ('+DAYS[t.dow]+')',amt:t.amt,cat:t.cat,note:t.note||'',paid:0,month:curMonth,year:curYear,carryover:false,carryoverFrom:null,recurId:t.id,recurType:'dayOfWeek',recurDow:t.dow});added++;}}
+    }
   });
   if(added>0)save();
 }
