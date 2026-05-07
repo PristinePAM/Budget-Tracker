@@ -918,10 +918,34 @@ function autoPopulateRecurring(){
 // AUTO CARRYOVER EXPENSES
 function autoCarryoverExpenses(){
   const pm=curMonth===0?11:curMonth-1,py=curMonth===0?curYear-1:curYear;
+  // Remove existing carryovers for current month so we recalculate fresh each time
   window._exp=window._exp.filter(e=>!(e.month===curMonth&&e.year===curYear&&e.carryover));
-  const prev=window._exp.filter(e=>e.month===pm&&e.year===py&&!e.carryover);
+  // Look at ALL previous month entries — including carryovers — so the chain continues
+  // across multiple months if the bill stays unpaid
+  const prev=window._exp.filter(e=>e.month===pm&&e.year===py);
   let added=0;
-  prev.forEach(e=>{const rem=+(e.amt-(e.paid||0)).toFixed(2);if(rem<=0)return;window._exp.push({id:uid(),date:e.date,desc:e.desc+' (carried over)',amt:rem,cat:e.cat,note:e.note||'',paid:0,month:curMonth,year:curYear,carryover:true,carryoverFrom:e.id,recurId:null});added++;});
+  prev.forEach(e=>{
+    const rem=+(e.amt-(e.paid||0)).toFixed(2);
+    if(rem<=0)return; // fully paid — stop the chain
+    // Use the original due date so the user always knows when it was first due
+    const originalDate=e.originalDate||e.date;
+    window._exp.push({
+      id:uid(),
+      date:originalDate,
+      originalDate,
+      desc:e.desc.replace(' (carried over)','')+(e.carryover?' (carried over)':' (carried over)'),
+      amt:rem,
+      cat:e.cat,
+      note:e.note||'',
+      paid:0,
+      month:curMonth,
+      year:curYear,
+      carryover:true,
+      carryoverFrom:e.carryoverFrom||e.id, // always point back to the original
+      recurId:null
+    });
+    added++;
+  });
   if(added>0)save();
 }
 
